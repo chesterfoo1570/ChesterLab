@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Endless Alphabet 🔤</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Lora:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --serif: "Playfair Display", "Times New Roman", Georgia, serif;
+      --body:  "Lora", "Times New Roman", Georgia, serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      min-height: 100vh;
+      background: #FDE9C9;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 24px 12px 40px;
+      font-family: var(--serif);
+    }
+
+    #gr {
+      width: 100%;
+      max-width: 620px;
+      background: #FFF8E7;
+      border-radius: 28px;
+      box-shadow: 0 8px 40px rgba(180,100,0,.15);
+      position: relative;
+      overflow: hidden;
+      min-height: 620px;
+    }
+
+    /* ── clouds ── */
+    .cloud { position: absolute; border-radius: 50%; background: #fff; opacity: .6; pointer-events: none; }
+
+    /* ══════════════ HOME ══════════════ */
+    #home { display: flex; flex-direction: column; align-items: center; padding: 32px 20px 24px; gap: 20px; }
+    .title-wrap { display: flex; align-items: center; gap: 12px; }
+    .title-big  { font-family: var(--serif); font-size: 2.5rem; color: #FF6B6B; text-shadow: 3px 3px 0 #FF8E53; font-weight: 900; letter-spacing: 1px; }
+    .subtitle   { font-family: var(--body); font-size: 1rem; color: #7B5EA7; font-weight: 700; font-style: italic; }
+
+    .wgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; width: 100%; }
+    .wcard {
+      background: #fff; border-radius: 20px; padding: 14px 8px 12px;
+      text-align: center; cursor: pointer; border: 3px solid transparent;
+      transition: transform .15s, border-color .15s; position: relative;
+      box-shadow: 0 3px 10px rgba(0,0,0,.07);
+    }
+    .wcard:hover  { transform: scale(1.07); border-color: #FFD700; }
+    .wcard.done   { background: #FFFDE7; border-color: #FFD700; }
+    .wcard .big-emoji { font-size: 2rem; display: block; line-height: 1; }
+    .wcard .wlabel    { font-family: var(--serif); font-size: 1.05rem; color: #333; margin-top: 6px; letter-spacing: 2px; font-weight: 700; }
+    .wcard .star-badge{ position: absolute; top: -8px; right: -8px; font-size: 1.3rem; }
+
+    /* ══════════════ PUZZLE ══════════════ */
+    #puzzle { display: none; flex-direction: column; align-items: center; min-height: 620px; padding-bottom: 12px; }
+
+    #topbar { width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 14px 16px 6px; }
+
+    #home-btn {
+      background: #FF6B6B; border: none; border-radius: 50px;
+      padding: 11px 22px; color: #fff;
+      font-family: var(--serif); font-size: 1rem; font-weight: 700;
+      cursor: pointer; display: flex; align-items: center; gap: 6px;
+      box-shadow: 0 4px 0 #C0392B; transition: transform .1s, box-shadow .1s;
+    }
+    #home-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 #C0392B; }
+
+    #speak-btn {
+      background: #7B5EA7; border: none; border-radius: 50px;
+      padding: 11px 22px; color: #fff;
+      font-family: var(--serif); font-size: 1rem; font-weight: 700;
+      cursor: pointer; box-shadow: 0 4px 0 #5B3E87; transition: transform .1s, box-shadow .1s;
+    }
+    #speak-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 #5B3E87; }
+
+    #word-big  { font-family: var(--serif); font-size: 2.6rem; color: #FF6B6B; letter-spacing: 6px; text-shadow: 2px 2px 0 #FF8E53; padding: 4px 0; font-weight: 900; }
+    #word-hint { font-family: var(--body); font-size: 1rem; color: #7B5EA7; font-style: italic; text-align: center; padding: 0 24px 6px; min-height: 26px; }
+
+    /* progress dots */
+    .prog-row { display: flex; gap: 8px; padding: 4px 0; }
+    .pdot { width: 14px; height: 14px; border-radius: 50%; background: #FFCDD2; transition: background .3s, transform .3s; }
+    .pdot.on { background: #FFD700; transform: scale(1.3); }
+
+    /* slots */
+    #slots-row { display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; padding: 8px 16px; }
+    .slot {
+      width: 56px; height: 70px; border-radius: 16px;
+      border: 4px dashed #FFCDD2; background: #FFF0F0;
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--serif); font-size: 2.1rem; color: #FFCDD2; font-weight: 900;
+      transition: border-color .2s, background .2s;
+    }
+    .slot.filled { border-color: #FFD700; background: #FFFDE7; color: #F57F17; }
+    .slot.over   { border-color: #4CAF50; background: #F1F8E9; }
+    .slot .ghost { color: #FFCDD2; font-size: 2.1rem; }
+
+    /* scatter area */
+    #scatter-area { position: relative; width: 100%; flex: 1; min-height: 240px; }
+
+    .dletter {
+      position: absolute; width: 58px; height: 72px; border-radius: 16px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      cursor: grab; touch-action: none; user-select: none;
+      font-family: var(--serif); font-size: 2.1rem; font-weight: 900; color: #fff;
+      box-shadow: 0 5px 0 rgba(0,0,0,.22); transition: box-shadow .1s;
+    }
+    .dletter:active, .dletter.dragging { cursor: grabbing; box-shadow: 0 10px 22px rgba(0,0,0,.28); }
+    .dletter .deyes { display: none; gap: 8px; margin-bottom: 2px; }
+    .dletter.alive .deyes { display: flex; }
+    .deye { width: 11px; height: 11px; border-radius: 50%; background: #fff; position: relative; }
+    .deye::after { content: ''; position: absolute; width: 6px; height: 6px; border-radius: 50%; background: #222; top: 2px; left: 2px; }
+    .dletter .dchar { font-size: 2.1rem; line-height: 1; }
+    .dletter.wiggling { animation: wgl .4s infinite; }
+    @keyframes wgl {
+      0%   { transform: rotate(-8deg) scale(1.12); }
+      50%  { transform: rotate( 8deg) scale(1.12); }
+      100% { transform: rotate(-8deg) scale(1.12); }
+    }
+
+    /* ══════════════ WIN ══════════════ */
+    #win {
+      display: none; position: absolute; inset: 0;
+      background: rgba(255,248,231,.96); border-radius: 28px;
+      flex-direction: column; align-items: center; justify-content: center;
+      gap: 18px; z-index: 50;
+    }
+    #win.show { display: flex; animation: popIn .4s cubic-bezier(.34,1.56,.64,1); }
+    @keyframes popIn { from { opacity:0; transform:scale(.8); } to { opacity:1; transform:scale(1); } }
+
+    .win-mons { font-size: 3rem; display: flex; gap: 14px; }
+    .win-mons span { display: inline-block; animation: monDance .5s infinite alternate; }
+    .win-mons span:nth-child(2) { animation-delay: .18s; }
+    .win-mons span:nth-child(3) { animation-delay: .36s; }
+    @keyframes monDance { from{transform:scale(1)rotate(-12deg)} to{transform:scale(1.2)rotate(12deg)} }
+
+    .win-word {
+      font-family: var(--serif); font-size: 3rem; color: #FF6B6B;
+      text-shadow: 3px 3px 0 #FF8E53; letter-spacing: 5px; font-weight: 900;
+      animation: bounce .55s infinite alternate;
+    }
+    @keyframes bounce { from{transform:translateY(0)} to{transform:translateY(-14px)} }
+
+    .win-def {
+      font-family: var(--body); font-size: 1rem; color: #5B3E87;
+      text-align: center; max-width: 300px; line-height: 1.7; font-style: italic;
+    }
+
+    .big-home-btn {
+      background: #FF6B6B; border: none; border-radius: 50px;
+      padding: 16px 38px; color: #fff;
+      font-family: var(--serif); font-size: 1.2rem; font-weight: 700;
+      cursor: pointer; box-shadow: 0 6px 0 #C0392B; margin-top: 4px;
+      display: flex; align-items: center; gap: 10px;
+      transition: transform .1s, box-shadow .1s;
+    }
+    .big-home-btn:active { transform: translateY(3px); box-shadow: 0 3px 0 #C0392B; }
+
+    /* responsive */
+    @media (max-width: 480px) {
+      .wgrid { grid-template-columns: repeat(3, 1fr); gap: 10px; }
+      .title-big { font-size: 1.9rem; }
+      #word-big  { font-size: 2rem; letter-spacing: 4px; }
+      .slot      { width: 46px; height: 58px; font-size: 1.7rem; }
+      .dletter   { width: 46px; height: 58px; font-size: 1.7rem; }
+    }
+  </style>
+</head>
+<body>
+<div id="gr">
+
+  <!-- clouds -->
+  <div class="cloud" style="width:120px;height:60px;top:28px;left:-20px;"></div>
+  <div class="cloud" style="width:80px; height:40px;top:18px;left:62px;"></div>
+  <div class="cloud" style="width:100px;height:50px;top:38px;right:8px;"></div>
+  <div class="cloud" style="width:60px; height:30px;top:22px;right:82px;"></div>
+
+  <!-- ── HOME ── -->
+  <div id="home">
+    <div class="title-wrap">
+      <span style="font-size:2.6rem;">🔤</span>
+      <div>
+        <div class="title-big">Endless Alphabet</div>
+        <div class="subtitle">點一個單字開始玩吧！</div>
+      </div>
+    </div>
+    <div class="wgrid" id="wgrid"></div>
+  </div>
+
+  <!-- ── PUZZLE ── -->
+  <div id="puzzle">
+    <div id="topbar">
+      <button id="home-btn">🏠 首頁</button>
+      <button id="speak-btn">🔊 唸單字</button>
+    </div>
+    <div id="word-big"></div>
+    <div id="word-hint"></div>
+    <div class="prog-row" id="prog-row"></div>
+    <div id="slots-row"></div>
+    <div id="scatter-area"></div>
+
+    <!-- WIN overlay -->
+    <div id="win">
+      <div class="win-mons" id="win-mons"></div>
+      <div class="win-word" id="win-word"></div>
+      <div class="win-def"  id="win-def"></div>
+      <button class="big-home-btn" id="win-home-btn">🏠 回首頁選更多單字！</button>
+    </div>
+  </div>
+
+</div><!-- #gr -->
+
+<script>
+const WORDS = [
+  { word:'APPLE', emoji:'🍎', def:'一種紅色或綠色的甜甜水果！',    monsters:['🐛','🐝','🦋'], colors:['#FF6B6B','#C0392B'] },
+  { word:'BEAR',  emoji:'🐻', def:'一隻毛茸茸的大熊熊！',          monsters:['🍯','🐾','🌲'], colors:['#8B6914','#6B4F0E'] },
+  { word:'CAT',   emoji:'🐱', def:'喵喵叫的可愛貓咪！',            monsters:['🎀','🐟','🧶'], colors:['#FF9F43','#E67E22'] },
+  { word:'DOG',   emoji:'🐶', def:'汪汪叫的忠實好朋友！',          monsters:['🦴','🎾','🐾'], colors:['#A0522D','#7B3F10'] },
+  { word:'EGG',   emoji:'🥚', def:'雞媽媽生的圓圓蛋蛋！',          monsters:['🐣','🐔','🌻'], colors:['#F1C40F','#D4AC0D'] },
+  { word:'FISH',  emoji:'🐟', def:'在水裡游來游去的魚！',          monsters:['🌊','🎣','🐚'], colors:['#48DBFB','#0984E3'] },
+  { word:'GOAT',  emoji:'🐐', def:'在山上跳跳跳的小羊！',          monsters:['🌿','⛰️','🔔'], colors:['#1DD1A1','#10AC84'] },
+  { word:'HAT',   emoji:'🎩', def:'戴在頭上的帽子！',              monsters:['🌟','🪄','🎭'], colors:['#6C5CE7','#4B3699'] },
+  { word:'ICE',   emoji:'🧊', def:'冷冷涼涼的冰塊！',              monsters:['❄️','⛄','🌬️'], colors:['#74B9FF','#0652DD'] },
+  { word:'JAM',   emoji:'🍓', def:'甜甜的草莓果醬！',              monsters:['🍞','😋','🫙'], colors:['#FF6EB4','#C0166A'] },
+  { word:'KITE',  emoji:'🪁', def:'在天上飛的風箏！',              monsters:['🌈','💨','☁️'], colors:['#FECA57','#D4AC0D'] },
+  { word:'LION',  emoji:'🦁', def:'森林裡的大獅子王！',            monsters:['👑','🌾','🐾'], colors:['#FD79A8','#E84393'] },
+];
+
+const LCOLORS = [
+  ['#FF6B6B','#C0392B'],['#FF9F43','#E67E22'],['#FECA57','#D4AC0D'],
+  ['#48DBFB','#0984E3'],['#1DD1A1','#10AC84'],['#FF6EB4','#C0166A'],
+  ['#6C5CE7','#4B3699'],['#A29BFE','#6C5CE7'],['#55EFC4','#00B894'],
+  ['#FDCB6E','#E17055'],
+];
+
+let done = new Set(), curW = null, filled = {}, drag = null, dox = 0, doy = 0;
+
+/* ── home grid ── */
+function buildHome() {
+  const g = document.getElementById('wgrid');
+  g.innerHTML = '';
+  WORDS.forEach((w, i) => {
+    const c = document.createElement('div');
+    c.className = 'wcard' + (done.has(w.word) ? ' done' : '');
+    c.innerHTML = (done.has(w.word) ? '<span class="star-badge">⭐</span>' : '')
+      + `<span class="big-emoji">${w.emoji}</span><div class="wlabel">${w.word}</div>`;
+    c.onclick = () => startPuzzle(i);
+    g.appendChild(c);
+  });
+}
+
+/* ── speech ── */
+function speak(txt, rate = 0.85) {
+  if (!window.speechSynthesis) return;
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(txt);
+  u.lang = 'en-US'; u.rate = rate; u.pitch = 1.1;
+  speechSynthesis.speak(u);
+}
+function speakL(l) {
+  if (!window.speechSynthesis) return;
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(l.toLowerCase());
+  u.lang = 'en-US'; u.rate = 0.55; u.pitch = 1.4;
+  speechSynthesis.speak(u);
+}
+
+/* ── navigation ── */
+function goHome() {
+  if (window.speechSynthesis) speechSynthesis.cancel();
+  document.getElementById('puzzle').style.display = 'none';
+  document.getElementById('home').style.display    = 'flex';
+  document.getElementById('win').classList.remove('show');
+  buildHome();
+}
+
+/* ── start puzzle ── */
+function startPuzzle(idx) {
+  curW = WORDS[idx]; filled = {};
+  document.getElementById('home').style.display   = 'none';
+  document.getElementById('puzzle').style.display = 'flex';
+  document.getElementById('win').classList.remove('show');
+  document.getElementById('word-big').textContent  = curW.word;
+  document.getElementById('word-hint').textContent = '';
+  buildProg(); buildSlots(); scatterLetters();
+  setTimeout(() => speak(curW.word), 300);
+}
+
+function buildProg() {
+  const r = document.getElementById('prog-row');
+  r.innerHTML = '';
+  curW.word.split('').forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'pdot'; d.id = 'pd' + i;
+    r.appendChild(d);
+  });
+}
+
+function buildSlots() {
+  const r = document.getElementById('slots-row');
+  r.innerHTML = '';
+  curW.word.split('').forEach((l, i) => {
+    const s = document.createElement('div');
+    s.className = 'slot'; s.dataset.i = i; s.dataset.l = l;
+    s.innerHTML = `<span class="ghost">${l}</span>`;
+    r.appendChild(s);
+  });
+}
+
+function scatterLetters() {
+  const area = document.getElementById('scatter-area');
+  area.innerHTML = '';
+  const letters = curW.word.split('').map((l, i) => ({ l, i, col: LCOLORS[i % LCOLORS.length] }));
+  for (let k = letters.length - 1; k > 0; k--) {
+    const j = Math.floor(Math.random() * (k + 1));
+    [letters[k], letters[j]] = [letters[j], letters[k]];
+  }
+  const cols = Math.ceil(letters.length / 2);
+  const cw   = Math.min(560, area.clientWidth || 520);
+
+  letters.forEach((item, n) => {
+    const el = document.createElement('div');
+    el.className = 'dletter';
+    el.id = 'dl' + item.i; el.dataset.l = item.l; el.dataset.oi = item.i;
+    const col  = Math.floor(n / 2), row = n % 2;
+    const stepX = Math.floor((cw - 60) / cols);
+    const bx   = col * stepX + 20 + Math.floor(Math.random() * 18);
+    const by   = row * 115   + 16 + Math.floor(Math.random() * 18);
+    el.style.left       = bx + 'px';
+    el.style.top        = by + 'px';
+    el.style.background = item.col[0];
+    el.style.boxShadow  = `0 5px 0 ${item.col[1]}`;
+    el.innerHTML = `<div class="deyes"><div class="deye"></div><div class="deye"></div></div><div class="dchar">${item.l}</div>`;
+    setupDrag(el);
+    area.appendChild(el);
+    filled[item.i] = { done: false };
+  });
+}
+
+/* ── drag ── */
+function setupDrag(el) {
+  el.addEventListener('mousedown', e => { if (el.dataset.placed) return; startDrag(el, e.clientX, e.clientY); e.preventDefault(); });
+  el.addEventListener('touchstart', e => { if (el.dataset.placed) return; const t = e.touches[0]; startDrag(el, t.clientX, t.clientY); e.preventDefault(); }, { passive: false });
+}
+function startDrag(el, cx, cy) {
+  drag = el; el.classList.add('alive', 'wiggling', 'dragging'); speakL(el.dataset.l);
+  const r = el.getBoundingClientRect(); dox = cx - r.left; doy = cy - r.top;
+  el.style.zIndex = 30; el.style.transition = 'none';
+}
+function onMove(cx, cy) {
+  if (!drag) return;
+  const a = document.getElementById('scatter-area').getBoundingClientRect();
+  drag.style.left = (cx - a.left - dox) + 'px';
+  drag.style.top  = (cy - a.top  - doy) + 'px';
+  document.querySelectorAll('.slot').forEach(s => s.classList.remove('over'));
+  const sl = nearSlot(cx, cy);
+  if (sl && sl.dataset.l === drag.dataset.l && !sl.classList.contains('filled')) sl.classList.add('over');
+}
+function onEnd(cx, cy) {
+  if (!drag) return;
+  const el = drag; drag = null;
+  el.classList.remove('wiggling', 'dragging'); el.style.zIndex = 5; el.style.transition = '';
+  const sl = nearSlot(cx, cy);
+  if (sl && sl.dataset.l === el.dataset.l && !sl.classList.contains('filled')) { placeIt(el, sl); }
+  else { el.classList.remove('alive'); }
+  document.querySelectorAll('.slot').forEach(s => s.classList.remove('over'));
+}
+function nearSlot(cx, cy) {
+  let best = null, bd = Infinity;
+  document.querySelectorAll('.slot:not(.filled)').forEach(s => {
+    const r = s.getBoundingClientRect();
+    const d = Math.hypot(cx - (r.left + r.width / 2), cy - (r.top + r.height / 2));
+    if (d < 65 && d < bd) { bd = d; best = s; }
+  });
+  return best;
+}
+function placeIt(el, sl) {
+  const idx = parseInt(sl.dataset.i);
+  sl.classList.add('filled');
+  sl.innerHTML = `<span style="font-family:'Playfair Display',serif;font-size:2.1rem;color:#F57F17;font-weight:900;">${sl.dataset.l}</span>`;
+  el.style.display = 'none'; filled[idx].done = true;
+  const pd = document.getElementById('pd' + idx); if (pd) pd.classList.add('on');
+  speakL(el.dataset.l);
+  if (Object.values(filled).every(f => f.done)) setTimeout(showWin, 600);
+}
+
+/* ── win ── */
+function showWin() {
+  done.add(curW.word);
+  speak(curW.word + '. ' + curW.def, 0.88);
+  document.getElementById('win-word').textContent = curW.word;
+  document.getElementById('win-def').textContent  = curW.def;
+  document.getElementById('win-mons').innerHTML   = curW.monsters.map(m => `<span>${m}</span>`).join('');
+  document.getElementById('win').classList.add('show');
+}
+
+/* ── global events ── */
+document.addEventListener('mousemove', e => onMove(e.clientX, e.clientY));
+document.addEventListener('mouseup',   e => onEnd(e.clientX, e.clientY));
+document.addEventListener('touchmove', e => { const t = e.touches[0]; onMove(t.clientX, t.clientY); }, { passive: false });
+document.addEventListener('touchend',  e => { const t = e.changedTouches[0]; onEnd(t.clientX, t.clientY); });
+
+document.getElementById('home-btn').onclick     = goHome;
+document.getElementById('speak-btn').onclick    = () => { if (curW) speak(curW.word); };
+document.getElementById('win-home-btn').onclick = goHome;
+
+buildHome();
+</script>
+</body>
+</html>
