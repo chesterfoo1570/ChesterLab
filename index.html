@@ -17,7 +17,7 @@ body{font-family:'Noto Sans TC','Microsoft JhengHei',Arial,sans-serif;background
 .wcard .we{font-size:1.7rem;line-height:1;display:block;}
 .wcard .ww{font-size:1.1rem;color:#1A1A1A;margin-top:5px;font-weight:900;}
 .wcard .wb{font-size:.68rem;color:#AAA;margin-top:2px;}
-.wcard .sb{position:absolute;top:-7px;right:-7px;font-size:1.1rem;}
+.wcard .sbx{position:absolute;top:-7px;right:-7px;font-size:1.1rem;}
 #puzzle{display:none;flex-direction:column;align-items:center;min-height:640px;padding-bottom:16px;}
 #topbar{width:100%;display:flex;align-items:center;justify-content:space-between;padding:14px 16px 6px;}
 .tbtn{border:none;border-radius:10px;padding:10px 18px;color:#fff;font-family:inherit;font-size:.9rem;font-weight:700;cursor:pointer;}
@@ -48,6 +48,8 @@ body{font-family:'Noto Sans TC','Microsoft JhengHei',Arial,sans-serif;background
 .wwb{font-size:3rem;color:#1A1A1A;font-weight:900;letter-spacing:6px;}
 .wdf{font-size:.95rem;color:#555;text-align:center;max-width:280px;line-height:1.8;}
 .whbtn{background:#E05C2A;border:none;border-radius:10px;padding:14px 34px;color:#fff;font-family:inherit;font-size:1rem;font-weight:700;cursor:pointer;margin-top:4px;}
+#notice{background:#FFF3CD;border:2px solid #F5A623;border-radius:10px;padding:10px 14px;font-size:.82rem;color:#7A5500;text-align:center;margin:0 16px;display:none;}
+#notice a{color:#E05C2A;font-weight:700;text-decoration:underline;cursor:pointer;}
 </style>
 </head>
 <body>
@@ -57,6 +59,7 @@ body{font-family:'Noto Sans TC','Microsoft JhengHei',Arial,sans-serif;background
       <div class="htitle">&#x1F524; &#27880;&#x97F3;&#x62FC;&#x62FC;&#x6A02;</div>
       <div class="hsub">&#x9078;&#x4E00;&#x500B;&#x8A5E;&#x8A9E;&#xFF0C;&#x628A;&#x6CE8;&#x97F3;&#x62FC;&#x56DE;&#x53BB;&#xFF01;</div>
     </div>
+    <div id="notice">&#x1F50A; &#x9EDE;&#x6B64;&#x958B;&#x555F;&#x8072;&#x97F3; &rarr; <a onclick="initAudio()">&#x958B;&#x555F;</a></div>
     <div class="wgrid" id="wgrid"></div>
   </div>
   <div id="puzzle">
@@ -78,6 +81,50 @@ body{font-family:'Noto Sans TC','Microsoft JhengHei',Arial,sans-serif;background
   </div>
 </div>
 <script>
+var actx=null;
+
+function getCtx(){
+  if(!actx)actx=new(window.AudioContext||window.webkitAudioContext)();
+  if(actx.state==='suspended')actx.resume();
+  return actx;
+}
+
+function initAudio(){
+  getCtx();
+  document.getElementById('notice').style.display='none';
+  playSuccess();
+}
+
+function playTone(freq,dur,type,vol){
+  try{
+    var ctx=getCtx();
+    var o=ctx.createOscillator();
+    var g=ctx.createGain();
+    o.connect(g);g.connect(ctx.destination);
+    o.type=type||'sine';
+    o.frequency.setValueAtTime(freq,ctx.currentTime);
+    g.gain.setValueAtTime(vol||0.3,ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+dur);
+    o.start(ctx.currentTime);
+    o.stop(ctx.currentTime+dur);
+  }catch(e){}
+}
+
+function playPop(){playTone(440,.12,'triangle',.25);setTimeout(function(){playTone(660,.1,'triangle',.2);},80);}
+
+function playCorrect(){
+  playTone(523,.1,'triangle',.3);
+  setTimeout(function(){playTone(659,.1,'triangle',.3);},120);
+  setTimeout(function(){playTone(784,.18,'triangle',.3);},240);
+}
+
+function playSuccess(){
+  var notes=[523,659,784,1047];
+  notes.forEach(function(n,i){setTimeout(function(){playTone(n,.22,'triangle',.3);},i*130);});
+}
+
+function playClick(){playTone(330,.08,'square',.15);}
+
 var W=[
   {word:'\u8c93',bopo:['\u3107','\u3120'],rd:'\u3107\u3120',em:'\uD83D\uDC31',def:'\u55B5\u55B5\u53EB\u7684\u53EF\u611B\u52D5\u7269\uFF01',mn:['\uD83D\uDC1F','\uD83C\uDF80','\uD83E\uDDF6']},
   {word:'\u72D7',bopo:['\u3111','\u311F'],rd:'\u3111\u311F',em:'\uD83D\uDC36',def:'\u6C6A\u6C6A\u53EB\u7684\u5FE0\u5BE6\u670B\u53CB\uFF01',mn:['\uD83E\uDDB4','\uD83C\uDFBE','\uD83D\uDC3E']},
@@ -101,36 +148,21 @@ var COLS=[
 ];
 
 var done=new Set(),curW=null,filled={},drag=null,dox=0,doy=0;
+var audioReady=false;
 
 function buildHome(){
   var g=document.getElementById('wgrid');g.innerHTML='';
   W.forEach(function(w,i){
     var c=document.createElement('div');
     c.className='wcard'+(done.has(w.word)?' done':'');
-    c.innerHTML=(done.has(w.word)?'<span class="sb">\u2B50</span>':'')+
+    c.innerHTML=(done.has(w.word)?'<span class="sbx">\u2B50</span>':'')+
       '<span class="we">'+w.em+'</span><div class="ww">'+w.word+'</div><div class="wb">'+w.rd+'</div>';
-    c.onclick=function(){startPuzzle(i);};
+    c.onclick=function(){playClick();startPuzzle(i);};
     g.appendChild(c);
   });
 }
 
-function speak(txt,rate){
-  if(!window.speechSynthesis)return;
-  speechSynthesis.cancel();
-  var u=new SpeechSynthesisUtterance(txt);
-  u.lang='zh-TW';u.rate=rate||0.82;u.pitch=1.05;
-  speechSynthesis.speak(u);
-}
-function speakC(ch){
-  if(!window.speechSynthesis)return;
-  speechSynthesis.cancel();
-  var u=new SpeechSynthesisUtterance(ch);
-  u.lang='zh-TW';u.rate=0.6;u.pitch=1.1;
-  speechSynthesis.speak(u);
-}
-
 function goHome(){
-  if(window.speechSynthesis)speechSynthesis.cancel();
   document.getElementById('puzzle').style.display='none';
   document.getElementById('home').style.display='flex';
   document.getElementById('win').classList.remove('show');
@@ -145,7 +177,8 @@ function startPuzzle(idx){
   document.getElementById('wbig').textContent=curW.word;
   document.getElementById('whint').textContent='\u628A\u6563\u958B\u7684\u6CE8\u97F3\uFF0C\u62D6\u56DE\u6B63\u78BA\u7684\u683C\u5B50\uFF01';
   buildProg();buildSlots();scatter();
-  setTimeout(function(){speak(curW.word);},300);
+  setTimeout(function(){playTone(392,.15,'triangle',.25);},200);
+  setTimeout(function(){playTone(523,.2,'triangle',.25);},380);
 }
 
 function buildProg(){
@@ -194,7 +227,7 @@ function setupDrag(el){
 }
 function startDrag(el,cx,cy){
   drag=el;el.classList.add('alive','wgl');
-  speakC(el.dataset.b);
+  playPop();
   var r=el.getBoundingClientRect();dox=cx-r.left;doy=cy-r.top;
   el.style.zIndex=30;el.style.transition='none';
 }
@@ -229,27 +262,34 @@ function placeIt(el,sl){
   sl.textContent=sl.dataset.b;
   el.style.display='none';filled[idx].done=true;
   var pd=document.getElementById('pd'+idx);if(pd)pd.classList.add('on');
-  speakC(el.dataset.b);
+  playCorrect();
   var allDone=true;
   Object.values(filled).forEach(function(f){if(!f.done)allDone=false;});
-  if(allDone)setTimeout(showWin,550);
+  if(allDone)setTimeout(showWin,600);
 }
 function showWin(){
-  done.add(curW.word);
-  speak(curW.word+'\u3002'+curW.def,0.85);
+  playSuccess();
   document.getElementById('wwb').textContent=curW.word;
   document.getElementById('wdf').textContent=curW.def;
   document.getElementById('wmons').innerHTML=curW.mn.map(function(m){return'<span>'+m+'</span>';}).join('');
   document.getElementById('win').classList.add('show');
+  done.add(curW.word);
 }
 
 document.addEventListener('mousemove',function(e){onMove(e.clientX,e.clientY);});
 document.addEventListener('mouseup',function(e){onEnd(e.clientX,e.clientY);});
 document.addEventListener('touchmove',function(e){var t=e.touches[0];onMove(t.clientX,t.clientY);},{passive:false});
 document.addEventListener('touchend',function(e){var t=e.changedTouches[0];onEnd(t.clientX,t.clientY);});
-document.getElementById('hbtn').onclick=goHome;
-document.getElementById('sbtn').onclick=function(){if(curW)speak(curW.word);};
-document.getElementById('whbtn').onclick=goHome;
+
+document.addEventListener('click',function(){
+  if(!audioReady){audioReady=true;getCtx();}
+},{once:true});
+
+document.getElementById('hbtn').onclick=function(){playClick();goHome();};
+document.getElementById('sbtn').onclick=function(){playTone(523,.15,'triangle',.3);setTimeout(function(){playTone(659,.2,'triangle',.25);},180);};
+document.getElementById('whbtn').onclick=function(){playClick();goHome();};
+
+document.getElementById('notice').style.display='block';
 buildHome();
 </script>
 </body>
